@@ -1,0 +1,84 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Signed Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Generate Release Keystore
+        run: |
+          keytool -genkey -v -keystore app/release.keystore \
+            -alias vedicmath \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass vedicmath123 \
+            -keypass vedicmath123 \
+            -dname "CN=VedicMath, OU=Mobile, O=Ayoub, L=Casablanca, S=Grand Casablanca, C=MA"
+
+      - name: Grant Execute Permission to gradlew
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare APK Output
+        run: |
+          mkdir -p release-output
+          cp app/build/outputs/apk/release/app-release.apk release-output/VedicMath-v1.0.0.apk
+          echo "APK generated successfully:"
+          ls -la release-output/
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VedicMath-v1.0.0-APK
+          path: release-output/VedicMath-v1.0.0.apk
+          retention-days: 30
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          tag_name: v1.0.0
+          name: "Vedic Math Quest v1.0.0 ⚡"
+          body: |
+            ### ⚡ Vedic Math Quest - Production Android APK Release
+            
+            Welcome to the official release of **Vedic Math Quest: Mental Dojo**!
+            
+            #### 🌟 Highlights & Features
+            - **100% Offline Capability**: All engines, Tailwind styling, procedural Web Audio SFX, and tutorials run completely offline with zero internet required.
+            - **Smart Cloud Auto-Sync**: Seamless real-time synchronization with Firestore. Plays fully offline and instantly auto-syncs your points, streaks, and stars the moment you reconnect!
+            - **Hardcore Cognitive Dojo & Arena**: 4 progressive Worlds, 14 stages, working memory diagnostics, overclock speed drills (≤ 4.0s), and Boss Deathmatches.
+            - **Procedural Audio & Tactile Haptics**: Native vibration feedback and synthesized audio tones for instant sensory reward.
+            - **Ultra-Lightweight & Fast**: Pure native WebView implementation targeting Android 14 (API 34) with hardware acceleration.
+            
+            #### 📲 Installation
+            1. Download `VedicMath-v1.0.0.apk` attached below.
+            2. Open the APK on your Android device and tap **Install**.
+          files: release-output/VedicMath-v1.0.0.apk
+          token: ${{ secrets.GITHUB_TOKEN }}

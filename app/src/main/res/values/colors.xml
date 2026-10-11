@@ -1,0 +1,8 @@
+<resources>
+    <color name="primary_dark">#09090B</color>
+    <color name="primary_surface">#18181B</color>
+    <color name="accent_rose">#E11D48</color>
+    <color name="accent_indigo">#6366F1</color>
+    <color name="accent_gold">#F59E0B</color>
+    <color name="status_bar_color">#09090B</color>
+</resources>

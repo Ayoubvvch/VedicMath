@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#09090b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Mental Math Quest | Training Dojo & Cognitive Arena</title>
+    <script src="assets/tailwind.cdn.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .font-mono-num { 
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
+        }
+        input {
+            -webkit-user-select: auto;
+            user-select: auto;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+        /* Timer & Animations */
+        #timer-bar, #dojo-timer-bar { transition: width 0.1s linear, background-color 0.3s ease; }
+        .fade-in { animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Screen Shake on Fail */
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        /* Boss Arena Pulse */
+        .boss-arena {
+            border-color: #ef4444 !important;
+            background: radial-gradient(circle at top, rgba(225, 29, 72, 0.15), rgba(9, 9, 11, 0.95)) !important;
+            box-shadow: 0 0 30px rgba(225, 29, 72, 0.25) !important;
+        }
+
+        /* Stage Card Glows */
+        .stage-card-unlocked:hover { transform: translateY(-2px); border-color: #6366f1; box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.2); }
+        .stage-card-active { border-color: #818cf8 !important; background: linear-gradient(135deg, rgba(30, 27, 75, 0.5), rgba(15, 23, 42, 0.8)); }
+
+        /* Confetti */
+        .confetti-piece {
+            position: fixed; pointer-events: none; z-index: 9999;
+            animation: confettiFall 1.4s ease-out forwards;
+        }
+        @keyframes confettiFall {
+            0% { opacity: 1; transform: translateY(-10vh) rotate(0deg) scale(1); }
+            100% { opacity: 0; transform: translateY(720deg) scale(0.3); }
+        }
+    </style>
+    <script src="assets/audio.js"></script>
+</head>
+<body class="bg-neutral-950 text-neutral-100 min-h-screen flex flex-col selection:bg-rose-500 selection:text-white">
+
+    <!-- ── TOP NAVIGATION / STATS BAR ── -->
+    <header class="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- Logo & Hardcore Motto -->
+            <div class="flex items-center gap-3 cursor-pointer" id="nav-logo">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-indigo-600 flex items-center justify-center text-xl font-black shadow-lg shadow-rose-600/25">
+                    ⚡
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg text-white tracking-tight leading-none">Vedic Math Quest</h1>
+                    <p class="text-[11px] text-amber-400 font-bold tracking-wide mt-0.5">
+                        Progression in game = Inevitable progression in mind
+                    </p>
+                </div>
+            </div>
+
+            <!-- Live Stats & OPM Speed Velocity -->
+            <div class="flex items-center gap-2 sm:gap-4 flex-wrap text-sm font-semibold">
+                <div class="bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded-lg flex items-center gap-2" title="Total Stars Collected">
+                    <span>🌟</span>
+                    <span id="total-stars" class="font-mono-num text-yellow-400 font-bold">0</span>
+                </div>
+                <div class="bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                    <span>⭐</span>
+                    <span id="total-points" class="font-mono-num text-amber-400 font-bold">0</span>
+                    <span class="text-xs text-neutral-400">pts</span>
+                </div>
+                <div class="bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded-lg flex items-center gap-2" title="Calculation Velocity (Operations Per Minute)">
+                    <span>🚀</span>
+                    <span id="opm-velocity" class="font-mono-num text-indigo-400 font-bold">0</span>
+                    <span class="text-[10px] text-neutral-500">OPM</span>
+                </div>
+                <div class="bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                    <span>🔥</span>
+                    <span id="streak-count" class="font-mono-num text-emerald-400 font-bold">0</span>
+                </div>
+                <div class="bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded-lg text-neutral-300">
+                    <span id="current-level-display">🔰 Novice</span>
+                </div>
+                <div class="bg-neutral-900 border border-neutral-800 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold" title="Automatic Cloud Sync Active">
+                    <span id="cloud-status-dot" class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="cloud-status-text" class="text-neutral-400 text-[11px]">Synced</span>
+                </div>
+            </div>
+
+            <!-- View Switchers & Guide -->
+            <div class="flex items-center gap-2">
+                <button id="view-map-btn" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-xs font-bold text-white transition flex items-center gap-1.5">
+                    <span>🗺️</span> Journey Map
+                </button>
+                <button id="view-dojo-btn" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 text-xs font-bold text-white transition flex items-center gap-1.5">
+                    <span>🏋️</span> Training Dojo
+                </button>
+                <button id="sound-toggle-btn" class="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-bold text-neutral-300 hover:text-white transition flex items-center gap-1.5" title="Toggle Sound FX">
+                    <span id="sound-btn-icon">🔊</span>
+                </button>
+                <button id="guide-modal-btn" class="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-bold text-neutral-300 hover:text-white transition flex items-center gap-1.5" title="Press 'G' for Guide">
+                    <span>📖</span> Guide
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── MAIN CONTENT AREA ── -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
+
+        <!-- ══ VIEW 1: SKILL TREE / JOURNEY MAP ══ -->
+        <section id="view-journey-map" class="fade-in flex flex-col gap-8">
+            
+            <div class="text-center space-y-2 py-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-950/80 border border-rose-800/80 text-rose-300 text-xs font-bold">
+                    <span>🥊 ABSOLUTE MASTERY: 3 CONSECUTIVE PERFECT CLEARS REQUIRED</span>
+                </div>
+                <h2 class="text-3xl sm:text-4xl font-black text-white tracking-tight">The Unforgiving Cognitive Arena</h2>
+                <p class="text-neutral-400 text-sm max-w-xl mx-auto">Train in the Dojo until you hit 5 consecutive answers under 4.0s! Only true speed unlocks tournament entry.</p>
+            </div>
+
+            <!-- WORLD 1: THE 2x2 REALM -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between border-b border-neutral-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">🛡️</span>
+                        <h3 class="text-lg font-bold text-indigo-400">World 1: The 2×2 Realm</h3>
+                    </div>
+                    <span class="text-xs text-neutral-500 font-mono">Working Memory Intro</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="world-1-stages">
+                    <!-- Dynamic Stage Cards -->
+                </div>
+            </div>
+
+            <!-- WORLD 2: TRICKS & TACTICS ARSENAL -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between border-b border-neutral-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">⚡</span>
+                        <h3 class="text-lg font-bold text-amber-400">World 2: Speed Tactics Arsenal</h3>
+                    </div>
+                    <span class="text-xs text-neutral-500 font-mono">Special Shortcuts</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="world-2-stages">
+                    <!-- Dynamic Stage Cards -->
+                </div>
+            </div>
+
+            <!-- WORLD 3: THE 3x3 REALM -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between border-b border-neutral-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">📐</span>
+                        <h3 class="text-lg font-bold text-violet-400">World 3: The 3×3 Realm</h3>
+                    </div>
+                    <span class="text-xs text-neutral-500 font-mono">Advanced Memory Capacity</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="world-3-stages">
+                    <!-- Dynamic Stage Cards -->
+                </div>
+            </div>
+
+            <!-- WORLD 4: GRANDMASTER REALM -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between border-b border-neutral-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">👑</span>
+                        <h3 class="text-lg font-bold text-emerald-400">World 4: Grandmaster Cup</h3>
+                    </div>
+                    <span class="text-xs text-neutral-500 font-mono">Ultimate Mental Calculation</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="world-4-stages">
+                    <!-- Dynamic Stage Cards -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ══ VIEW 2: ADAPTIVE TRAINING DOJO (ساحة التدريب والتأهيل) ══ -->
+        <section id="view-dojo" class="hidden fade-in flex flex-col gap-6">
+
+            <!-- Dojo Welcome Header -->
+            <div class="bg-neutral-900/90 border border-emerald-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col gap-6">
+                
+                <div class="flex items-center justify-between border-b border-neutral-800 pb-4 flex-wrap gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-950 border border-emerald-700/80 flex items-center justify-center text-2xl">
+                            🏋️
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-black text-white">The Training Dojo</h2>
+                            <p id="dojo-target-stage-text" class="text-xs text-emerald-400 font-bold">Adaptive Gym: Preparing for Stage 1.1 (No-Carry Intro)</p>
+                        </div>
+                    </div>
+
+                    <!-- Dojo Speed Mode Selector & Live Countdown Timer -->
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <div class="flex items-center gap-1 bg-neutral-950 p-1.5 rounded-xl border border-neutral-800 text-xs font-bold">
+                            <button id="dojo-speed-relaxed" class="px-3 py-1.5 rounded-lg text-neutral-400 hover:text-white transition">☕ Slow Pace</button>
+                            <button id="dojo-speed-target" class="px-3 py-1.5 rounded-lg text-neutral-400 hover:text-white transition">⏱️ Target (8s)</button>
+                            <button id="dojo-speed-hyper" class="px-3 py-1.5 rounded-lg bg-rose-600 text-white font-bold transition">⚡ Overclock (&le; 4.0s)</button>
+                        </div>
+                        <span id="dojo-timer-display" class="font-mono-num text-xl font-black text-rose-400 min-w-[65px] text-right">04.0s</span>
+                    </div>
+                </div>
+
+                <!-- Dojo Live Speed Timer Bar -->
+                <div id="dojo-timer-bar-wrap" class="w-full h-2 bg-neutral-950 rounded-full overflow-hidden">
+                    <div id="dojo-timer-bar" class="h-full bg-rose-500 w-full"></div>
+                </div>
+
+                <!-- Dojo Hardcore Qualification Criterion Banner -->
+                <div class="bg-neutral-950 border border-neutral-800 p-3.5 rounded-2xl text-xs font-semibold text-emerald-300 flex items-center gap-2">
+                    <span>🥊</span>
+                    <span><strong>Dojo Qualification Rule:</strong> In Overclock mode, press Ready to start! Solve 5 questions in a row in <strong>&le; 4.0s each</strong> before time runs out!</span>
+                </div>
+
+                <!-- Stage Mental Shortcut Banner -->
+                <div id="dojo-shortcut-box" class="bg-neutral-950 border border-neutral-800 p-4 rounded-2xl flex items-center justify-between text-xs font-mono text-neutral-300">
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-400 text-base">💡</span>
+                        <span id="dojo-shortcut-text">Mental Shortcut: Multiply vertical ones, cross products, then vertical tens.</span>
+                    </div>
+                    <button id="dojo-guide-link" class="text-indigo-400 font-bold hover:underline">Read Technique Guide →</button>
+                </div>
+
+                <!-- Memory Visualizer Tool (Carry Scratchpad) -->
+                <div class="bg-neutral-950/80 border border-neutral-800 p-4 rounded-2xl flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg">🧠</span>
+                        <span class="font-bold text-neutral-300">Working Memory Assist:</span>
+                        <span id="dojo-carry-display" class="font-mono-num px-3 py-1 bg-neutral-900 border border-neutral-800 text-amber-400 rounded-lg text-sm font-bold">Hold Carry: 0</span>
+                    </div>
+                </div>
+
+                <!-- Dojo Problem Arena -->
+                <div class="text-center py-4">
+                    <div id="dojo-problem" class="font-mono-num text-5xl sm:text-7xl font-black text-white tracking-wider">
+                        ⚡ Ready?
+                    </div>
+                </div>
+
+                <!-- Dojo Input Form -->
+                <div class="max-w-md mx-auto w-full flex flex-col gap-4">
+                    <input type="number" id="dojo-answer" inputmode="numeric" pattern="[0-9]*" 
+                        class="w-full text-center font-mono-num text-3xl font-extrabold py-3.5 px-4 bg-neutral-950 border-2 border-emerald-900 text-white rounded-2xl outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 transition-all placeholder:text-neutral-600" 
+                        placeholder="Click Start when ready..." disabled autocomplete="off">
+
+                    <div class="flex items-center gap-3">
+                        <button id="dojo-submit-btn" class="flex-1 py-3.5 px-6 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-base transition shadow-lg shadow-rose-600/25 active:scale-95">
+                            ▶ Start Speed Practice
+                        </button>
+                        <button id="dojo-next-btn" class="py-3.5 px-4 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-sm border border-neutral-700 transition">
+                            Next Practice →
+                        </button>
+                    </div>
+                </div>
+
+                <div id="dojo-feedback" class="text-center font-bold text-base min-h-[30px]"></div>
+
+                <!-- Gateway to Official Tournament -->
+                <div id="dojo-tournament-gateway" class="hidden pt-4 border-t border-neutral-800 text-center space-y-3">
+                    <p class="text-xs text-emerald-400 font-bold">🔥 4.0s OVERCLOCK DOMINATION ACHIEVED! You are 100% prepared for Tournament Stage.</p>
+                    <button id="enter-tournament-btn" class="w-full py-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-lg shadow-xl shadow-rose-600/30 transition transform hover:scale-[1.01]">
+                        ⚔️ Enter Official Tournament Stage →
+                    </button>
+                </div>
+
+                <!-- Dojo Warmup Counter Footer -->
+                <div class="flex justify-between items-center pt-2 text-xs font-semibold text-neutral-400">
+                    <div>Overclock Streak (&le;4.0s): <span id="dojo-overclock-streak-count" class="text-emerald-400 font-mono-num font-bold">0 / 5</span></div>
+                    <div>Accuracy: <span id="dojo-accuracy" class="text-amber-400 font-mono-num font-bold">100%</span></div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ══ VIEW 3: HARDCORE TOURNAMENT ARENA ══ -->
+        <section id="view-arena" class="hidden fade-in flex flex-col gap-6">
+
+            <!-- Arena Card -->
+            <div id="arena-card" class="bg-neutral-900/90 border border-neutral-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col gap-6 transition-all duration-300">
+
+                <!-- Header Status & Stage Title -->
+                <div class="flex items-center justify-between text-xs font-semibold text-neutral-400 border-b border-neutral-800/80 pb-4">
+                    <div class="flex items-center gap-3">
+                        <button id="back-to-map-btn" class="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 text-neutral-300 font-bold border border-neutral-800 transition">← Map</button>
+                        <button id="dojo-direct-link-btn" class="px-2.5 py-1 rounded-lg bg-emerald-950 border border-emerald-700/80 text-emerald-400 font-bold hover:bg-emerald-900 transition">🏋️ Dojo Warm-up</button>
+                        <span id="arena-stage-title" class="text-indigo-400 font-bold text-sm">Stage 1.1: No-Carry Intro</span>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <span id="boss-badge" class="hidden px-2.5 py-1 rounded-md text-xs font-black bg-rose-600 text-white tracking-wider animate-pulse">⚔️ BOSS DEATHMATCH</span>
+                        <span id="perfect-streak-badge" class="px-2.5 py-1 rounded-md text-xs font-black bg-indigo-950 border border-indigo-700/80 text-indigo-300">Streak: 0/3 Perfect</span>
+                        <span id="timer-display" class="font-mono-num text-xl font-black text-rose-400 min-w-[65px] text-right">00.0s</span>
+                    </div>
+                </div>
+
+                <!-- Strict Speed Timer Bar -->
+                <div id="timer-bar-wrap" class="w-full h-2 bg-neutral-950 rounded-full overflow-hidden">
+                    <div id="timer-bar" class="h-full bg-rose-500 w-full"></div>
+                </div>
+
+                <!-- Math Problem Display -->
+                <div class="text-center py-4 sm:py-6">
+                    <div id="challenge-problem" class="font-mono-num text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-wider drop-shadow-md">
+                        ⚡
+                    </div>
+                    <p id="stage-cognitive-hint" class="text-xs text-neutral-500 mt-2 font-medium">Cognitive Focus: No-carry mental product</p>
+                </div>
+
+                <!-- Input & Actions Form -->
+                <div class="max-w-md mx-auto w-full flex flex-col gap-4">
+                    <input type="number" id="challenge-answer" inputmode="numeric" pattern="[0-9]*" 
+                        class="w-full text-center font-mono-num text-3xl sm:text-4xl font-extrabold py-3.5 px-4 bg-neutral-950 border-2 border-neutral-800 text-white rounded-2xl outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/20 transition-all placeholder:text-neutral-600 placeholder:text-xl placeholder:font-sans" 
+                        placeholder="Press Start..." disabled autocomplete="off">
+
+                    <div class="flex items-center gap-3">
+                        <button id="submit-btn" class="flex-1 py-3.5 px-6 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-base transition shadow-lg shadow-rose-600/25 active:scale-95">
+                            ▶ Begin Hardcore Drill
+                        </button>
+                        <button id="stage-tutorial-btn" class="py-3.5 px-4 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-indigo-300 font-bold text-sm border border-neutral-700 transition" title="Interactive Tutorial">
+                            🎓 How it Works
+                        </button>
+                        <button id="hint-btn" class="hidden py-3.5 px-4 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-amber-400 font-bold text-sm border border-neutral-700 transition" title="Press 'H' for Hint">
+                            💡 Hint
+                        </button>
+                        <button id="skip-btn" class="hidden py-3.5 px-4 rounded-2xl bg-neutral-950 hover:bg-neutral-800 text-neutral-400 font-bold text-sm border border-neutral-800 transition" title="Press 'Space' to Skip">
+                            Skip
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Working Memory Diagnostic Feedback -->
+                <div id="challenge-feedback" class="text-center font-bold text-base sm:text-lg min-h-[36px] transition-all"></div>
+
+                <div class="flex items-center gap-3 max-w-md mx-auto w-full">
+                    <button id="next-btn" class="hidden flex-1 py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-base transition shadow-lg shadow-emerald-600/25">
+                        Next Question →
+                    </button>
+                    <button id="quick-next-stage-btn" class="hidden flex-1 py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-base transition shadow-lg shadow-indigo-600/25">
+                        ⚡ Next Stage Unlocked →
+                    </button>
+                </div>
+
+                <!-- Stage Drill Scoreboard Footer -->
+                <div class="flex justify-center items-center gap-6 pt-4 border-t border-neutral-800/80 text-xs font-semibold text-neutral-400">
+                    <div>Stage Progress: <span id="drill-progress" class="text-indigo-400 font-mono-num text-sm font-bold">0 / 5</span></div>
+                    <div>Correct: <span id="correct-count" class="text-emerald-400 font-mono-num text-sm font-bold">0</span></div>
+                    <div>Accuracy: <span id="accuracy-display" class="text-amber-400 font-mono-num text-sm font-bold">100%</span></div>
+                </div>
+            </div>
+
+            <!-- ══ DETAILED SOLUTION & DIAGNOSTIC CARD ══ -->
+            <section id="challenge-solution" class="hidden fade-in bg-neutral-900 border border-neutral-800 rounded-3xl p-6 sm:p-8 flex flex-col gap-4">
+                <!-- Generated Breakdown & Working Memory Diagnostics -->
+            </section>
+
+        </section>
+
+    </main>
+
+    <!-- ── INTERACTIVE MINI-TUTORIAL WALKTHROUGH MODAL ── -->
+    <div id="tutorial-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-neutral-900 border border-neutral-800 rounded-3xl max-w-xl w-full flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-5 border-b border-neutral-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🎓</span>
+                    <div>
+                        <h3 id="tut-stage-title" class="font-bold text-white text-base">Stage Tutorial</h3>
+                        <p class="text-xs text-neutral-400">Working Memory Technique Walkthrough</p>
+                    </div>
+                </div>
+                <button id="close-tut-btn" class="w-8 h-8 rounded-full bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white flex items-center justify-center font-bold text-sm">✕</button>
+            </div>
+            <div class="p-6 flex flex-col gap-5 text-sm">
+                <div id="tut-step-box" class="bg-neutral-950 border border-neutral-800 p-5 rounded-2xl space-y-3 font-mono">
+                    <!-- Dynamic Step Walkthrough Content -->
+                </div>
+                <div class="flex items-center justify-between">
+                    <button id="tut-prev-btn" class="px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold text-xs">← Previous Step</button>
+                    <span id="tut-step-counter" class="text-xs text-neutral-500 font-mono">Step 1 of 3</span>
+                    <button id="tut-next-btn" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs">Start Practice →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── DYNAMIC UNLOCKED METHOD GUIDE MODAL ── -->
+    <div id="guide-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-neutral-900 border border-neutral-800 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-neutral-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">📖</span>
+                    <h2 class="text-xl font-bold text-white">Unlocked Method Guide</h2>
+                </div>
+                <button id="close-guide-btn" class="w-8 h-8 rounded-full bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white flex items-center justify-center font-bold text-sm">✕</button>
+            </div>
+            <div id="guide-modal-content" class="p-6 overflow-y-auto space-y-6 text-sm text-neutral-300 leading-relaxed">
+            </div>
+        </div>
+    </div>
+
+    <div id="confetti-container"></div>
+
+    <!-- ── FIREBASE 100% AUTOMATIC GLOBAL SYNC ── -->
+    <script type="module">
+        import { initializeApp } from "./assets/firebase-app.js";
+        import { getAuth, signInAnonymously } from "./assets/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "./assets/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyChoa7rRWsD1duL7mtANwS6SmqbGgzN63c",
+            authDomain: "vedic-math-890b4.firebaseapp.com",
+            projectId: "vedic-math-890b4",
+            storageBucket: "vedic-math-890b4.firebasestorage.app",
+            messagingSenderId: "627379900499",
+            appId: "1:627379900499:web:0cbe494b2986286387b6a6",
+            measurementId: "G-F37NC28J1R"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const cloudStatusDot  = document.getElementById('cloud-status-dot');
+        const cloudStatusText = document.getElementById('cloud-status-text');
+        const MASTER_DOC = doc(db, "gym_data", "main_profile");
+
+        function connectAuth() {
+            signInAnonymously(auth).then(() => {
+                if (cloudStatusDot) cloudStatusDot.className = "inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                if (cloudStatusText) cloudStatusText.textContent = "Synced";
+            }).catch(err => {
+                console.warn("Retrying cloud auth...", err);
+                if (cloudStatusDot) cloudStatusDot.className = "inline-block w-2 h-2 rounded-full bg-emerald-400 opacity-70";
+                if (cloudStatusText) cloudStatusText.textContent = "Local";
+                setTimeout(connectAuth, 5000);
+            });
+        }
+        connectAuth();
+
+        
+        function triggerHaptic(duration = 40) {
+            try {
+                if (window.AndroidBridge && window.AndroidBridge.vibrate) {
+                    window.AndroidBridge.vibrate(duration);
+                } else if (navigator.vibrate) {
+                    navigator.vibrate(duration);
+                }
+            } catch(e) {}
+        }
+        window.triggerHaptic = triggerHaptic;
+
+        window.addEventListener('online', () => {
+            if (cloudStatusDot) cloudStatusDot.className = 'inline-block w-2 h-2 rounded-full bg-indigo-400 animate-ping';
+            if (cloudStatusText) cloudStatusText.textContent = 'Syncing...';
+            connectAuth();
+            if (window.syncStatsToCloud) window.syncStatsToCloud();
+        });
+        window.addEventListener('offline', () => {
+            if (cloudStatusDot) cloudStatusDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400';
+            if (cloudStatusText) cloudStatusText.textContent = 'Local (Offline)';
+        });
+
+        // 🟢 REALTIME AUTO-SYNC: Pulls & Merges Seamlessly on Open & Progress
+        onSnapshot(MASTER_DOC, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                const localPoints = parseInt(localStorage.getItem('vm_points') || '0');
+                const cloudPoints = data.points || 0;
+                
+                if (cloudPoints >= localPoints) {
+                    localStorage.setItem('vm_points',         cloudPoints);
+                    localStorage.setItem('vm_streak',         data.streak || 0);
+                    localStorage.setItem('vm_correct',        data.correctCount || 0);
+                    localStorage.setItem('vm_opm',            data.opm || 0);
+                    localStorage.setItem('vm_stars_data',     JSON.stringify(data.stageStars || {}));
+                    localStorage.setItem('vm_perfect_clears', JSON.stringify(data.stageClears || {}));
+                    
+                    if (window.updateStatsFromCloud) {
+                        window.updateStatsFromCloud(data);
+                    }
+                } else {
+                    window.syncStatsToCloud();
+                }
+            } else {
+                window.syncStatsToCloud();
+            }
+        });
+
+        // 🟢 INSTANT AUTO-PUSH: Pushes every star & progress point immediately
+        window.syncStatsToCloud = async function() {
+            if (cloudStatusDot) cloudStatusDot.className = "inline-block w-2 h-2 rounded-full bg-indigo-400 animate-ping";
+            try {
+                const starsData  = JSON.parse(localStorage.getItem('vm_stars_data') || '{}');
+                const clearsData = JSON.parse(localStorage.getItem('vm_perfect_clears') || '{}');
+                await setDoc(MASTER_DOC, {
+                    points: parseInt(localStorage.getItem('vm_points') || '0'),
+                    streak: parseInt(localStorage.getItem('vm_streak') || '0'),
+                    correctCount: parseInt(localStorage.getItem('vm_correct') || '0'),
+                    opm: parseInt(localStorage.getItem('vm_opm') || '0'),
+                    stageStars: starsData,
+                    stageClears: clearsData,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+                if (cloudStatusDot) cloudStatusDot.className = "inline-block w-2 h-2 rounded-full bg-emerald-400";
+                if (cloudStatusText) cloudStatusText.textContent = "Synced";
+            } catch(e) {
+                console.warn("Cloud push queuing for reconnect:", e);
+                if (cloudStatusDot) cloudStatusDot.className = "inline-block w-2 h-2 rounded-full bg-emerald-400 opacity-70";
+                if (cloudStatusText) cloudStatusText.textContent = "Local";
+            }
+        };
+    </script>
+
+    <!-- ── APPLICATION & HARDCORE DRILL ENGINE LOGIC ── -->
+    <script>
+    (function() {
+        const STAGES = [
+            // WORLD 1
+            { id: '1.1', world: 1, name: '2×2 No-Carry Intro', desc: 'Zero carry memory strain (e.g. 12 × 23)', topic: '2x2', minStarsToUnlock: 0, timeLimit: 8, cogHint: '8s Limit: Focus on vertical & cross flow.' },
+            { id: '1.2', world: 1, name: '2×2 Single Carry Drill', desc: 'Hold 1 carry in memory (e.g. 34 × 21)', topic: '2x2', minStarsToUnlock: 3, timeLimit: 12, cogHint: '12s Limit: Store 1 digit carry in memory.' },
+            { id: '1.3', world: 1, name: '2×2 Heavy Memory Drill', desc: 'Multiple large carries (e.g. 87 × 94)', topic: '2x2', minStarsToUnlock: 6, timeLimit: 16, cogHint: '16s Limit: Heavy memory strain & large carries.' },
+            { id: '1.4', world: 1, name: '⚔️ 2×2 Boss Deathmatch', desc: '8 Speed questions under 6s each. 1 mistake = Reset!', topic: '2x2', minStarsToUnlock: 9, isBoss: true, timeLimit: 6, reqCount: 8, cogHint: '6s Hard Limit: Survival Deathmatch!' },
+
+            // WORLD 2
+            { id: '2.1', world: 2, name: '✨ Lightning 11s', desc: 'Adjacent digit sums (e.g. 352 × 11)', topic: 'special-11', minStarsToUnlock: 12, timeLimit: 6, cogHint: '6s Limit: Add neighboring digits right to left.' },
+            { id: '2.2', world: 2, name: '💥 Ending in 5 Squaring', desc: 'Shortcut N×(N+1) | 25 (e.g. 85²)', topic: 'special-5', minStarsToUnlock: 15, timeLimit: 5, cogHint: '5s Limit: N × (N+1) and attach 25.' },
+            { id: '2.3', world: 2, name: '🎯 Nikhilam Base 100', desc: 'Near 100 shortcuts (e.g. 98 × 97)', topic: 'nikhilam', minStarsToUnlock: 18, timeLimit: 8, cogHint: '8s Limit: Deviations from 100.' },
+            { id: '2.4', world: 2, name: '⚔️ Tactics Boss Deathmatch', desc: 'Fast execution across all special shortcuts', topic: 'mixed-tactics', minStarsToUnlock: 21, isBoss: true, timeLimit: 6, reqCount: 8, cogHint: '6s Limit: Identify & execute in seconds!' },
+
+            // WORLD 3
+            { id: '3.1', world: 3, name: '3×3 Light Digits', desc: '5-step pattern intro (e.g. 123 × 212)', topic: '3x3', minStarsToUnlock: 24, timeLimit: 20, cogHint: '20s Limit: Follow 5-step pattern.' },
+            { id: '3.2', world: 3, name: '★ Grand Star Focus', desc: 'Mastering middle star product', topic: '3x3', minStarsToUnlock: 27, timeLimit: 22, cogHint: '22s Limit: Grand Star calculation.' },
+            { id: '3.3', world: 3, name: '🧠 3×3 Heavy Carries', desc: 'Heavy memory load (e.g. 789 × 654)', topic: '3x3', minStarsToUnlock: 30, timeLimit: 26, cogHint: '26s Limit: Ultimate 3×3 working memory.' },
+            { id: '3.4', world: 3, name: '⚔️ 3×3 Boss Deathmatch', desc: 'Mastery test for 3×3 Multiplication', topic: '3x3', minStarsToUnlock: 33, isBoss: true, timeLimit: 15, reqCount: 8, cogHint: '15s Hard Limit: Prove 3×3 mastery!' },
+
+            // WORLD 4
+            { id: '4.1', world: 4, name: '🧠 4×4 Advanced', desc: '7-step 4-digit multiplication', topic: '4x4', minStarsToUnlock: 36, timeLimit: 40, cogHint: '40s Limit: 7-step grand star pattern.' },
+            { id: '4.2', world: 4, name: '👑 Grandmaster Cup', desc: 'Mixed challenge across all realms & methods', topic: 'mixed', minStarsToUnlock: 39, isBoss: true, timeLimit: 10, reqCount: 10, cogHint: '10s Limit: World Championship!' }
+        ];
+
+        // Interactive Stage Tutorials Data
+        const TUTORIALS = {
+            '1.1': {
+                title: 'Stage 1.1: 2×2 No-Carry Intro',
+                steps: [
+                    { text: 'Let us multiply <strong>23 × 12</strong> without any carries.', prob: '23 × 12' },
+                    { text: '<strong>Step 1 (Ones):</strong> Multiply right digits: <span class="text-emerald-400 font-bold">3 × 2 = 6</span>. Write <strong>6</strong> in the ones place.', prob: '23 × 12 → Ones: 6' },
+                    { text: '<strong>Step 2 (Cross):</strong> (2×2) + (3×1) = 4 + 3 = <span class="text-emerald-400 font-bold">7</span>. Write <strong>7</strong> in the tens place.', prob: '23 × 12 → Middle: 76' },
+                    { text: '<strong>Step 3 (Tens):</strong> Multiply left digits: <span class="text-emerald-400 font-bold">2 × 1 = 2</span>. Final Answer = <strong>276</strong>!', prob: '23 × 12 = 276' }
+                ]
+            },
+            '1.2': {
+                title: 'Stage 1.2: Working Memory (Single Carry)',
+                steps: [
+                    { text: 'Let us multiply <strong>34 × 21</strong> with 1 carry in mind.', prob: '34 × 21' },
+                    { text: '<strong>Step 1:</strong> 4 × 1 = <span class="text-emerald-400 font-bold">4</span>.', prob: '34 × 21 → Ones: 4' },
+                    { text: '<strong>Step 2 (Cross):</strong> (3×1) + (4×2) = 3 + 8 = <span class="text-emerald-400 font-bold">11</span>. Write <strong>1</strong> and HOLD <span class="text-rose-400 font-bold">1</span> in your memory!', prob: '34 × 21 → Hold carry: +1' },
+                    { text: '<strong>Step 3:</strong> 3 × 2 = 6 + <span class="text-rose-400 font-bold">1</span> = <span class="text-emerald-400 font-bold">7</span>. Result = <strong>714</strong>!', prob: '34 × 21 = 714' }
+                ]
+            },
+            '2.2': {
+                title: 'Stage 2.2: Squaring Numbers Ending in 5',
+                steps: [
+                    { text: 'Multiply any number ending in 5 by itself, e.g. <strong>85²</strong>.', prob: '85 × 85' },
+                    { text: '<strong>Right Part:</strong> 5 × 5 = <span class="text-amber-400 font-bold">25</span> (always 25).', prob: '85² → Right: 25' },
+                    { text: '<strong>Left Part:</strong> Take first digit 8, multiply by (8+1=9): 8 × 9 = <span class="text-emerald-400 font-bold">72</span>.', prob: '85² → Left: 72' },
+                    { text: '<strong>Combine:</strong> [72][25] = <span class="text-amber-400 font-bold">7225</span> in 1 second!', prob: '85² = 7225' }
+                ]
+            }
+        };
+
+        // State
+        let totalPoints        = parseInt(localStorage.getItem('vm_points')  || '0');
+        let streak             = parseInt(localStorage.getItem('vm_streak')  || '0');
+        let correctCount       = parseInt(localStorage.getItem('vm_correct') || '0');
+        let opmVelocity        = parseInt(localStorage.getItem('vm_opm')     || '0');
+        let stageStars         = JSON.parse(localStorage.getItem('vm_stars_data') || '{}');
+        let stagePerfectClears = JSON.parse(localStorage.getItem('vm_perfect_clears') || '{}');
+        let activeStage        = STAGES[0];
+
+        // Dojo State
+        let dojoClears = 0;
+        let dojoTotal  = 0;
+        let dojoOverclockStreak = 0;
+        let dojoSpeedMode = 'hyper';
+        let dojoPracticeActive = false;
+        let dojoNum1 = 0, dojoNum2 = 0, dojoCorrectAns = 0;
+        let dojoTimerStart = 0, dojoTimerInterval = null, dojoTimerRunning = false;
+
+        // Tournament State
+        let drillProgress = 0;
+        let drillCorrect  = 0;
+        let num1, num2, correctAns, activeTopic;
+        let timerInterval = null, timerStart = 0, elapsed = 0, timerRunning = false;
+        let practiceActive = false;
+        let hintCount = 0;
+        let usedSessionProblems = new Set();
+
+        // DOM Elements
+        const totalStarsEl        = document.getElementById('total-stars');
+        const totalPointsEl       = document.getElementById('total-points');
+        const streakCountEl       = document.getElementById('streak-count');
+        const opmVelocityEl       = document.getElementById('opm-velocity');
+        const currentLevelEl      = document.getElementById('current-level-display');
+        const viewJourneyMap      = document.getElementById('view-journey-map');
+        const viewDojo            = document.getElementById('view-dojo');
+        const viewArena           = document.getElementById('view-arena');
+        const arenaCard           = document.getElementById('arena-card');
+        const bossBadge           = document.getElementById('boss-badge');
+        const perfectStreakBadge  = document.getElementById('perfect-streak-badge');
+        const viewMapBtn          = document.getElementById('view-map-btn');
+        const viewDojoBtn         = document.getElementById('view-dojo-btn');
+        const navLogo             = document.getElementById('nav-logo');
+        const backToMapBtn        = document.getElementById('back-to-map-btn');
+        const dojoDirectLinkBtn   = document.getElementById('dojo-direct-link-btn');
+        const arenaStageTitle     = document.getElementById('arena-stage-title');
+        const stageCognitiveHint  = document.getElementById('stage-cognitive-hint');
+        const timerDisplay        = document.getElementById('timer-display');
+        const timerBarWrap        = document.getElementById('timer-bar-wrap');
+        const timerBar            = document.getElementById('timer-bar');
+        const challengeProblem    = document.getElementById('challenge-problem');
+        const challengeAnswer     = document.getElementById('challenge-answer');
+        const submitBtn           = document.getElementById('submit-btn');
+        const stageTutorialBtn    = document.getElementById('stage-tutorial-btn');
+        const hintBtn             = document.getElementById('hint-btn');
+        const skipBtn             = document.getElementById('skip-btn');
+        const nextBtn             = document.getElementById('next-btn');
+        const quickNextStageBtn   = document.getElementById('quick-next-stage-btn');
+        const challengeFeedback   = document.getElementById('challenge-feedback');
+        const challengeSolution   = document.getElementById('challenge-solution');
+        const drillProgressEl     = document.getElementById('drill-progress');
+        const correctCountEl      = document.getElementById('correct-count');
+        const accuracyDisplay     = document.getElementById('accuracy-display');
+        const guideModalBtn       = document.getElementById('guide-modal-btn');
+        const closeGuideBtn       = document.getElementById('close-guide-btn');
+        const guideModal          = document.getElementById('guide-modal');
+        const guideModalContent   = document.getElementById('guide-modal-content');
+        const tutorialModal       = document.getElementById('tutorial-modal');
+        const closeTutBtn         = document.getElementById('close-tut-btn');
+        const tutStageTitle       = document.getElementById('tut-stage-title');
+        const tutStepBox          = document.getElementById('tut-step-box');
+        const tutPrevBtn          = document.getElementById('tut-prev-btn');
+        const tutNextBtn          = document.getElementById('tut-next-btn');
+        const tutStepCounter      = document.getElementById('tut-step-counter');
+        const confettiContainer   = document.getElementById('confetti-container');
+
+        // Dojo Specific DOM Elements
+        const dojoTargetStageText = document.getElementById('dojo-target-stage-text');
+        const dojoSpeedRelaxed    = document.getElementById('dojo-speed-relaxed');
+        const dojoSpeedTarget     = document.getElementById('dojo-speed-target');
+        const dojoSpeedHyper      = document.getElementById('dojo-speed-hyper');
+        const dojoTimerDisplay    = document.getElementById('dojo-timer-display');
+        const dojoTimerBarWrap    = document.getElementById('dojo-timer-bar-wrap');
+        const dojoTimerBar        = document.getElementById('dojo-timer-bar');
+        const dojoShortcutText    = document.getElementById('dojo-shortcut-text');
+        const dojoGuideLink       = document.getElementById('dojo-guide-link');
+        const dojoCarryDisplay    = document.getElementById('dojo-carry-display');
+        const dojoProblem         = document.getElementById('dojo-problem');
+        const dojoAnswer          = document.getElementById('dojo-answer');
+        const dojoSubmitBtn       = document.getElementById('dojo-submit-btn');
+        const dojoNextBtn         = document.getElementById('dojo-next-btn');
+        const dojoFeedback        = document.getElementById('dojo-feedback');
+        const dojoTournamentGateway = document.getElementById('dojo-tournament-gateway');
+        const enterTournamentBtn  = document.getElementById('enter-tournament-btn');
+        const dojoOverclockStreakCount = document.getElementById('dojo-overclock-streak-count');
+        const dojoAccuracy        = document.getElementById('dojo-accuracy');
+
+        // Init
+        function init() {
+            updateStats();
+            renderJourneyMap();
+        }
+
+        function countTotalStars() {
+            let total = 0;
+            Object.values(stageStars).forEach(s => total += (parseInt(s) || 0));
+            return total;
+        }
+
+        function updateStats() {
+            const stars = countTotalStars();
+            totalStarsEl.textContent = stars;
+            totalPointsEl.textContent = totalPoints.toLocaleString();
+            streakCountEl.textContent = streak;
+            opmVelocityEl.textContent = opmVelocity;
+
+            if (stars >= 36)      currentLevelEl.textContent = '👑 Grandmaster';
+            else if (stars >= 24) currentLevelEl.textContent = '🥇 Gold Master';
+            else if (stars >= 12) currentLevelEl.textContent = '🥈 Silver Adept';
+            else if (stars >= 3)  currentLevelEl.textContent = '🥉 Bronze Student';
+            else                  currentLevelEl.textContent = '🔰 Novice';
+        }
+
+        window.updateStatsFromCloud = function(data) {
+            totalPoints        = data.points || 0;
+            streak             = data.streak || 0;
+            correctCount       = data.correctCount || 0;
+            opmVelocity        = data.opm || 0;
+            stageStars         = data.stageStars || {};
+            stagePerfectClears = data.stageClears || {};
+            updateStats();
+            renderJourneyMap();
+        };
+
+        function save() {
+            localStorage.setItem('vm_points',         totalPoints);
+            localStorage.setItem('vm_streak',         streak);
+            localStorage.setItem('vm_correct',        correctCount);
+            localStorage.setItem('vm_opm',            opmVelocity);
+            localStorage.setItem('vm_stars_data',     JSON.stringify(stageStars));
+            localStorage.setItem('vm_perfect_clears', JSON.stringify(stagePerfectClears));
+            if (window.syncStatsToCloud) window.syncStatsToCloud();
+        }
+
+        // Render Skill Tree / Stage Journey Map
+        function renderJourneyMap() {
+            const currentStars = countTotalStars();
+
+            for (let worldNum = 1; worldNum <= 4; worldNum++) {
+                const container = document.getElementById(`world-${worldNum}-stages`);
+                if (!container) continue;
+                container.innerHTML = '';
+
+                const worldStages = STAGES.filter(s => s.world === worldNum);
+                worldStages.forEach(stg => {
+                    const starsEarned  = stageStars[stg.id] || 0;
+                    const clearsStreak = stagePerfectClears[stg.id] || 0;
+                    const isUnlocked   = currentStars >= stg.minStarsToUnlock;
+                    const isActive     = activeStage.id === stg.id;
+
+                    const card = document.createElement('div');
+                    let baseClass = "p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 relative overflow-hidden ";
+                    
+                    if (isUnlocked) {
+                        baseClass += isActive ? "stage-card-active border-indigo-500 shadow-lg " : "bg-neutral-900 border-neutral-800 stage-card-unlocked cursor-pointer ";
+                    } else {
+                        baseClass += "bg-neutral-950/60 border-neutral-900 opacity-60 cursor-not-allowed ";
+                    }
+
+                    const starStr = isUnlocked ? '⭐'.repeat(starsEarned) + '☆'.repeat(3 - starsEarned) : '🔒';
+
+                    card.className = baseClass;
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <span class="text-[11px] font-mono ${stg.isBoss ? 'text-rose-400 font-bold' : 'text-neutral-500'}">Stage ${stg.id} • ${stg.timeLimit}s Limit</span>
+                                <h4 class="font-bold text-white text-sm sm:text-base">${stg.name}</h4>
+                                <p class="text-xs text-neutral-400 mt-1">${stg.desc}</p>
+                            </div>
+                            <span class="text-sm font-mono tracking-widest">${starStr}</span>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-neutral-800/60 text-xs gap-2">
+                            <span class="text-neutral-500">${isUnlocked ? `Perfect Streak: ${clearsStreak}/3` : `Requires 3★ on Stage ${STAGES[STAGES.findIndex(s => s.id === stg.id) - 1]?.id || ''}`}</span>
+                            ${isUnlocked ? `
+                                <div class="flex items-center gap-1.5">
+                                    <button class="dojo-stage-btn px-2.5 py-1 rounded-lg bg-emerald-950 border border-emerald-700/80 hover:bg-emerald-900 text-emerald-300 font-bold transition">🏋️ Dojo</button>
+                                    <button class="play-stage-btn px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold transition">Play →</button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+
+                    if (isUnlocked) {
+                        const playBtn = card.querySelector('.play-stage-btn');
+                        const dojoBtn = card.querySelector('.dojo-stage-btn');
+                        if (playBtn) playBtn.addEventListener('click', (e) => { e.stopPropagation(); launchStage(stg); });
+                        if (dojoBtn) dojoBtn.addEventListener('click', (e) => { e.stopPropagation(); launchDojo(stg); });
+                        card.addEventListener('click', () => launchStage(stg));
+                    }
+                    container.appendChild(card);
+                });
+            }
+        }
+
+        // Dynamically Render ONLY UNLOCKED Methods in Method Guide
+        function renderUnlockedGuide() {
+            const currentStars = countTotalStars();
+            guideModalContent.innerHTML = '';
+
+            const sec2x2 = document.createElement('div');
+            sec2x2.className = "space-y-2 border-b border-neutral-800 pb-5";
+            sec2x2.innerHTML = `
+                <h3 class="font-bold text-indigo-400 text-base">1. Cross-Multiplication Basics (2×2)</h3>
+                <p>Pattern: <strong class="text-white">Vertical → Cross → Vertical</strong></p>
+                <div class="bg-neutral-950 p-3.5 rounded-xl font-mono text-xs text-neutral-300 space-y-1">
+                    <div>Example: 32 × 41</div>
+                    <div>1. Ones: 2×1 = 2 → write <span class="text-emerald-400">2</span></div>
+                    <div>2. Cross: (3×1) + (2×4) = 11 → write <span class="text-emerald-400">1</span>, carry <span class="text-rose-400">1</span></div>
+                    <div>3. Tens: (3×4) + 1 = 13 → write <span class="text-emerald-400">13</span></div>
+                    <div class="text-amber-400 font-bold pt-1">Result: 1312</div>
+                </div>
+            `;
+            guideModalContent.appendChild(sec2x2);
+
+            if (currentStars >= 12) {
+                const sec11 = document.createElement('div');
+                sec11.className = "space-y-2 border-b border-neutral-800 pb-5";
+                sec11.innerHTML = `
+                    <h3 class="font-bold text-teal-400 text-base">2. Lightning Multiply by 11</h3>
+                    <p>Add adjacent digits and place them between outer digits.</p>
+                    <div class="bg-neutral-950 p-3.5 rounded-xl font-mono text-xs text-neutral-300 space-y-1">
+                        <div>Example: 352 × 11</div>
+                        <div>First digit = 3 | 3+5 = 8 | 5+2 = 7 | Last digit = 2</div>
+                        <div class="text-amber-400 font-bold pt-1">Result: 3872</div>
+                    </div>
+                `;
+                guideModalContent.appendChild(sec11);
+            }
+
+            if (currentStars >= 15) {
+                const sec5 = document.createElement('div');
+                sec5.className = "space-y-2 border-b border-neutral-800 pb-5";
+                sec5.innerHTML = `
+                    <h3 class="font-bold text-amber-400 text-base">3. Squaring Numbers Ending in 5</h3>
+                    <p>Rule: Multiply first digit N by (N+1), then attach 25.</p>
+                    <div class="bg-neutral-950 p-3.5 rounded-xl font-mono text-xs text-neutral-300 space-y-1">
+                        <div>Example: 85²</div>
+                        <div>Left Part: 8 × (8+1) = 8 × 9 = 72</div>
+                        <div>Right Part: 5 × 5 = 25</div>
+                        <div class="text-amber-400 font-bold pt-1">Result: 7225</div>
+                    </div>
+                `;
+                guideModalContent.appendChild(sec5);
+            }
+
+            if (currentStars >= 18) {
+                const secNikh = document.createElement('div');
+                secNikh.className = "space-y-2 border-b border-neutral-800 pb-5";
+                secNikh.innerHTML = `
+                    <h3 class="font-bold text-amber-400 text-base">4. Base Method (Nikhilam Sutra)</h3>
+                    <p>Ideal when numbers are near a base of 10, 100, or 1000.</p>
+                    <div class="bg-neutral-950 p-3.5 rounded-xl font-mono text-xs text-neutral-300 space-y-1">
+                        <div>Example: 98 × 97 (Base 100)</div>
+                        <div>Deviations: 98 → −2 | 97 → −3</div>
+                        <div>Left Part: 98 − 3 = 95</div>
+                        <div>Right Part: (−2)×(−3) = 06 (2 digits for base 100)</div>
+                        <div class="text-amber-400 font-bold pt-1">Result: 9506</div>
+                    </div>
+                `;
+                guideModalContent.appendChild(secNikh);
+            }
+
+            if (currentStars >= 24) {
+                const sec3x3 = document.createElement('div');
+                sec3x3.className = "space-y-2 border-b border-neutral-800 pb-5";
+                sec3x3.innerHTML = `
+                    <h3 class="font-bold text-indigo-400 text-base">5. Advanced Cross-Multiplication (3×3)</h3>
+                    <p>Symmetric 5-step pattern introducing the <strong class="text-white">Grand Star ★</strong> in step 3.</p>
+                    <div class="bg-neutral-950 p-3.5 rounded-xl font-mono text-xs text-neutral-300 space-y-1">
+                        <div>Example: 123 × 456</div>
+                        <div>1. Vertical Right: 3×6 = 18 → write 8, carry 1</div>
+                        <div>2. Cross Right: (2×6)+(3×5)+1 = 28 → write 8, carry 2</div>
+                        <div>3. Grand Star ★: (1×6)+(3×4)+(2×5)+2 = 30 → write 0, carry 3</div>
+                        <div>4. Cross Left: (1×5)+(2×4)+3 = 16 → write 6, carry 1</div>
+                        <div>5. Vertical Left: 1×4+1 = 5 → write 5</div>
+                        <div class="text-amber-400 font-bold pt-1">Result: 56088</div>
+                    </div>
+                `;
+                guideModalContent.appendChild(sec3x3);
+            }
+
+            if (currentStars >= 36) {
+                const sec4x4 = document.createElement('div');
+                sec4x4.className = "space-y-2";
+                sec4x4.innerHTML = `
+                    <h3 class="font-bold text-violet-400 text-base">6. Pro 4×4 Cross Multiplication</h3>
+                    <p>Extended 7-step pattern for 4-digit numbers.</p>
+                    <div class="bg-neutral-950 p-3.5 rounded-xl font-mono text-xs text-neutral-300 space-y-1">
+                        <div>Example: 1234 × 5678</div>
+                        <div class="text-amber-400 font-bold pt-1">Result: 7006652</div>
+                    </div>
+                `;
+                guideModalContent.appendChild(sec4x4);
+            }
+        }
+
+        // Launch Adaptive Training Dojo
+        function launchDojo(stg) {
+            activeStage = stg || activeStage;
+            renderJourneyMap();
+
+            viewJourneyMap.classList.add('hidden');
+            viewArena.classList.add('hidden');
+            viewDojo.classList.remove('hidden');
+
+            dojoTargetStageText.textContent = `Adaptive Practice Gym: Preparing for Stage ${activeStage.id} (${activeStage.name})`;
+            dojoShortcutText.textContent = `Cognitive Shortcut: ${activeStage.cogHint}`;
+            dojoTournamentGateway.classList.add('hidden');
+
+            dojoClears = 0;
+            dojoTotal = 0;
+            dojoOverclockStreak = 0;
+            updateDojoStats();
+            generateDojoProblem();
+        }
+
+        function updateDojoStats() {
+            dojoOverclockStreakCount.textContent = `${dojoOverclockStreak} / 5`;
+            dojoAccuracy.textContent = dojoTotal > 0 ? Math.round(dojoClears / dojoTotal * 100) + '%' : '100%';
+        }
+
+        function getDojoTimeLimit() {
+            if (dojoSpeedMode === 'hyper') return 4.0;
+            if (dojoSpeedMode === 'target') return activeStage.timeLimit || 8.0;
+            return 0; // Relaxed
+        }
+
+        function startDojoTimer() {
+            stopDojoTimer();
+            const limit = getDojoTimeLimit();
+            if (limit <= 0) {
+                dojoTimerBarWrap.classList.add('hidden');
+                dojoTimerDisplay.textContent = 'Untimed';
+                dojoTimerDisplay.className = 'font-mono-num text-sm font-semibold text-neutral-500 min-w-[65px] text-right';
+                return;
+            }
+
+            dojoTimerBarWrap.classList.remove('hidden');
+            dojoTimerDisplay.textContent = limit.toFixed(1) + 's';
+            dojoTimerDisplay.className = 'font-mono-num text-xl font-black text-rose-400 min-w-[65px] text-right';
+            dojoTimerBar.style.width = '100%';
+            dojoTimerBar.style.backgroundColor = '#ef4444';
+
+            dojoTimerStart = performance.now();
+            dojoTimerRunning = true;
+            dojoTimerInterval = setInterval(tickDojoTimer, 100);
+            tickDojoTimer();
+        }
+
+        function stopDojoTimer() {
+            if (dojoTimerInterval) clearInterval(dojoTimerInterval);
+            dojoTimerInterval = null;
+            dojoTimerRunning = false;
+        }
+
+        function tickDojoTimer() {
+            if (!dojoTimerRunning) return;
+            const elapsedDojo = (performance.now() - dojoTimerStart) / 1000;
+            const maxLimit = getDojoTimeLimit();
+            const remaining = Math.max(0, maxLimit - elapsedDojo);
+
+            const secs = Math.floor(remaining);
+            const tenths = Math.floor((remaining - secs) * 10);
+            dojoTimerDisplay.textContent = String(secs).padStart(2,'0') + '.' + tenths + 's';
+
+            const pct = Math.max(0, (remaining / maxLimit * 100));
+            dojoTimerBar.style.width = pct + '%';
+
+            if (remaining <= 0) {
+                stopDojoTimer();
+                handleDojoTimeoutFail();
+            }
+        }
+
+        function handleDojoTimeoutFail() { if (window.soundEngine) window.soundEngine.playWrong(); if (window.triggerHaptic) window.triggerHaptic(90);
+            dojoTotal++;
+            dojoOverclockStreak = 0;
+            dojoPracticeActive = false;
+            dojoAnswer.disabled = true;
+
+            dojoFeedback.innerHTML = `⏱️ <strong>TIME EXPIRED!</strong> Speed limit breached (&gt;${getDojoTimeLimit()}s). Streak reset to 0/5. Answer: ${dojoCorrectAns}`;
+            dojoFeedback.className = 'text-center font-bold text-base text-rose-400 min-h-[30px]';
+            dojoTournamentGateway.classList.add('hidden');
+            updateDojoStats();
+
+            dojoSubmitBtn.textContent = '▶ Retry Speed Practice';
+            dojoSubmitBtn.className = "flex-1 py-3.5 px-6 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-base transition shadow-lg shadow-rose-600/25 active:scale-95";
+        }
+
+        function generateDojoProblem() {
+            stopDojoTimer();
+            dojoAnswer.value = '';
+            dojoFeedback.textContent = '';
+            dojoFeedback.className = 'text-center font-bold text-base min-h-[30px]';
+
+            const stgId = activeStage.id;
+
+            if (stgId === '1.1') {
+                dojoNum1 = rand(11, 32); dojoNum2 = rand(11, 32);
+                while ((dojoNum1 % 10)*(dojoNum2 % 10) > 9 || (Math.floor(dojoNum1/10)*(dojoNum2%10) + (dojoNum1%10)*Math.floor(dojoNum2/10)) > 9) {
+                    dojoNum1 = rand(11, 32); dojoNum2 = rand(11, 32);
+                }
+            } else if (stgId === '1.2') {
+                dojoNum1 = rand(21, 54); dojoNum2 = rand(12, 43);
+            } else if (stgId === '1.3' || stgId === '1.4') {
+                dojoNum1 = rand(57, 99); dojoNum2 = rand(48, 98);
+            } else if (stgId === '2.1') {
+                dojoNum1 = 11; dojoNum2 = rand(12, 999);
+            } else if (stgId === '2.2') {
+                dojoNum1 = rand(2, 12) * 10 + 5; dojoNum2 = dojoNum1;
+            } else if (stgId === '2.3') {
+                const base = 100; const side = Math.random() > 0.5 ? 1 : -1;
+                dojoNum1 = base + side * rand(2, 12); dojoNum2 = base + side * rand(2, 12);
+            } else if (stgId.startsWith('3.')) {
+                dojoNum1 = rand(123, 899); dojoNum2 = rand(123, 899);
+            } else {
+                dojoNum1 = rand(12, 99); dojoNum2 = rand(12, 99);
+            }
+
+            dojoCorrectAns = dojoNum1 * dojoNum2;
+
+            const a1 = dojoNum1 % 10, b1 = dojoNum2 % 10;
+            const c1 = Math.floor((a1 * b1) / 10);
+            dojoCarryDisplay.textContent = `Hold Carry: +${c1}`;
+
+            if (dojoSpeedMode === 'relaxed') {
+                dojoPracticeActive = true;
+                dojoProblem.innerHTML = `${dojoNum1} &times; ${dojoNum2}`;
+                dojoAnswer.placeholder = "Practice answer...";
+                dojoAnswer.disabled = false;
+                dojoSubmitBtn.textContent = '✓ Check Practice Answer';
+                dojoSubmitBtn.className = "flex-1 py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-base transition shadow-lg shadow-emerald-600/25 active:scale-95";
+                startDojoTimer();
+                dojoAnswer.focus();
+            } else {
+                dojoPracticeActive = false;
+                dojoProblem.innerHTML = '⚡ Ready?';
+                dojoAnswer.placeholder = "Click Start when ready...";
+                dojoAnswer.disabled = true;
+                dojoSubmitBtn.textContent = '▶ Start Speed Practice';
+                dojoSubmitBtn.className = "flex-1 py-3.5 px-6 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-base transition shadow-lg shadow-rose-600/25 active:scale-95";
+                const limit = getDojoTimeLimit();
+                dojoTimerDisplay.textContent = limit.toFixed(1) + 's';
+                dojoTimerBar.style.width = '100%';
+            }
+        }
+
+        function startDojoSpeedPractice() {
+            dojoPracticeActive = true;
+            dojoProblem.innerHTML = `${dojoNum1} &times; ${dojoNum2}`;
+            dojoAnswer.placeholder = "Enter speed product...";
+            dojoAnswer.disabled = false;
+            dojoSubmitBtn.textContent = '✓ Check Speed Answer';
+            dojoSubmitBtn.className = "flex-1 py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-base transition shadow-lg shadow-emerald-600/25 active:scale-95";
+            startDojoTimer();
+            dojoAnswer.focus();
+        }
+
+        // Hardcore Overclock Verification: 5 Consecutive Questions in <= 4.0s Each
+        function checkDojoAnswer() {
+            if (!dojoPracticeActive) {
+                startDojoSpeedPractice();
+                return;
+            }
+
+            const userAns = parseInt(dojoAnswer.value);
+            if (isNaN(userAns)) return;
+
+            stopDojoTimer();
+            const timeTaken = (performance.now() - dojoTimerStart) / 1000;
+            dojoTotal++;
+
+            const targetMax = getDojoTimeLimit();
+            const isOverclockSpeed = (dojoSpeedMode === 'relaxed') || (timeTaken <= targetMax);
+
+            if (userAns === dojoCorrectAns && isOverclockSpeed) {
+                dojoClears++;
+                if (dojoSpeedMode !== 'relaxed') dojoOverclockStreak++;
+                else dojoOverclockStreak = Math.min(5, dojoOverclockStreak + 1);
+
+                const timeText = dojoSpeedMode !== 'relaxed' ? ` (${timeTaken.toFixed(1)}s)` : '';
+                dojoFeedback.innerHTML = `⚡ <strong>PERFECT SPEED!</strong>${timeText} — Streak: ${dojoOverclockStreak}/5`;
+                dojoFeedback.className = 'text-center font-bold text-base text-emerald-400 min-h-[30px]';
+                spawnConfetti(); if (window.soundEngine) window.soundEngine.playCorrect(); if (window.triggerHaptic) window.triggerHaptic(40);
+
+                if (dojoOverclockStreak >= 5) {
+                    dojoTournamentGateway.classList.remove('hidden');
+                }
+
+                updateDojoStats();
+                setTimeout(() => generateDojoProblem(), 900);
+            } else if (userAns === dojoCorrectAns && !isOverclockSpeed) {
+                dojoOverclockStreak = 0;
+                dojoFeedback.innerHTML = `⚠️ Correct (${dojoCorrectAns}), but <strong>TOO SLOW!</strong> (${timeTaken.toFixed(1)}s > ${targetMax.toFixed(1)}s target). Overclock Streak reset to 0/5.`;
+                dojoFeedback.className = 'text-center font-bold text-base text-amber-400 min-h-[30px]';
+                dojoTournamentGateway.classList.add('hidden');
+                updateDojoStats();
+                setTimeout(() => generateDojoProblem(), 1200);
+            } else {
+                dojoOverclockStreak = 0;
+                if (window.soundEngine) window.soundEngine.playWrong(); if (window.triggerHaptic) window.triggerHaptic(90);
+                const diagMsg = diagnoseWorkingMemoryError(dojoNum1, dojoNum2, userAns);
+                dojoFeedback.innerHTML = `❌ Incorrect (${dojoCorrectAns}). Overclock Streak reset to 0/5.<br><span class="text-xs text-amber-300 font-semibold">${diagMsg}</span>`;
+                dojoFeedback.className = 'text-center font-bold text-base text-rose-400 min-h-[30px]';
+                dojoTournamentGateway.classList.add('hidden');
+                updateDojoStats();
+            }
+        }
+
+        // Launch Official Tournament Arena
+        function launchStage(stg) {
+            activeStage = stg;
+            renderJourneyMap();
+
+            viewJourneyMap.classList.add('hidden');
+            viewDojo.classList.add('hidden');
+            viewArena.classList.remove('hidden');
+
+            arenaStageTitle.textContent = `Stage ${stg.id}: ${stg.name}`;
+            stageCognitiveHint.textContent = `Cognitive Focus: ${stg.cogHint}`;
+
+            if (stg.isBoss) {
+                arenaCard.classList.add('boss-arena');
+                bossBadge.classList.remove('hidden');
+            } else {
+                arenaCard.classList.remove('boss-arena');
+                bossBadge.classList.add('hidden');
+            }
+
+            const currentClears = stagePerfectClears[stg.id] || 0;
+            perfectStreakBadge.textContent = `Streak: ${currentClears}/3 Perfect`;
+
+            drillProgress = 0;
+            drillCorrect = 0;
+            usedSessionProblems.clear();
+            updateDrillProgress();
+
+            showStartScreen();
+        }
+
+        function updateDrillProgress() {
+            const reqCount = activeStage.reqCount || 5;
+            drillProgressEl.textContent = `${drillProgress} / ${reqCount}`;
+            correctCountEl.textContent = drillCorrect;
+            accuracyDisplay.textContent = drillProgress > 0 ? Math.round(drillCorrect / drillProgress * 100) + '%' : '100%';
+        }
+
+        function showStartScreen() {
+            practiceActive = false;
+            stopTimer();
+            resetTimerDisplay();
+            challengeProblem.textContent = '⚡';
+            challengeAnswer.value = '';
+            challengeAnswer.disabled = true;
+            challengeAnswer.placeholder = "Click Start to begin...";
+            challengeFeedback.textContent = '';
+            challengeSolution.classList.add('hidden');
+            challengeSolution.innerHTML = '';
+            nextBtn.classList.add('hidden');
+            quickNextStageBtn.classList.add('hidden');
+            hintBtn.classList.add('hidden');
+            skipBtn.classList.add('hidden');
+            submitBtn.textContent = activeStage.isBoss ? '⚔️ Start Boss Deathmatch' : '▶ Begin Hardcore Drill';
+            submitBtn.className = "flex-1 py-3.5 px-6 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-base transition shadow-lg shadow-rose-600/25 active:scale-95";
+        }
+
+        // Stage Cognitive Generator (Guarantees NO Repeated Problems in Session)
+        function generateProblem() {
+            stopTimer();
+            resetTimerDisplay();
+            challengeAnswer.value = '';
+            challengeFeedback.textContent = '';
+            challengeFeedback.className = 'text-center font-bold text-base sm:text-lg min-h-[36px] transition-all';
+            challengeSolution.classList.add('hidden');
+            challengeSolution.innerHTML = '';
+            nextBtn.classList.add('hidden');
+            quickNextStageBtn.classList.add('hidden');
+            hintBtn.classList.remove('hidden');
+            skipBtn.classList.remove('hidden');
+            hintCount = 0;
+
+            const stgId = activeStage.id;
+            activeTopic = activeStage.topic;
+
+            let attempts = 0;
+            let key = '';
+
+            do {
+                if (stgId === '1.1') {
+                    num1 = rand(11, 32); num2 = rand(11, 32);
+                    while ((num1 % 10)*(num2 % 10) > 9 || (Math.floor(num1/10)*(num2%10) + (num1%10)*Math.floor(num2/10)) > 9) {
+                        num1 = rand(11, 32); num2 = rand(11, 32);
+                    }
+                } else if (stgId === '1.2') {
+                    num1 = rand(21, 54); num2 = rand(12, 43);
+                } else if (stgId === '1.3' || (stgId === '1.4' && activeTopic === '2x2')) {
+                    num1 = rand(57, 99); num2 = rand(48, 98);
+                } else if (stgId === '2.1') {
+                    num1 = 11; num2 = rand(12, 999);
+                } else if (stgId === '2.2') {
+                    num1 = rand(2, 12) * 10 + 5; num2 = num1;
+                } else if (stgId === '2.3') {
+                    const base = 100; const side = Math.random() > 0.5 ? 1 : -1;
+                    num1 = base + side * rand(2, 12); num2 = base + side * rand(2, 12);
+                } else if (stgId === '3.1') {
+                    num1 = rand(101, 323); num2 = rand(101, 232);
+                } else if (stgId === '3.2' || stgId === '3.3' || stgId === '3.4') {
+                    num1 = rand(345, 989); num2 = rand(234, 978);
+                } else if (stgId === '4.1' || stgId === '4.2') {
+                    num1 = rand(1123, 9876); num2 = rand(1123, 9876);
+                } else {
+                    num1 = rand(12, 99); num2 = rand(12, 99);
+                }
+
+                key = `${num1}x${num2}`;
+                attempts++;
+            } while (usedSessionProblems.has(key) && attempts < 50);
+
+            usedSessionProblems.add(key);
+
+            correctAns = num1 * num2;
+            challengeProblem.innerHTML = `${num1} &times; ${num2}`;
+            challengeAnswer.placeholder = "Enter product...";
+            challengeAnswer.disabled = false;
+            challengeAnswer.focus();
+            startTimer();
+        }
+
+        function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+        // Hardcore Speed Timer Engine
+        function startTimer() {
+            stopTimer();
+            timerStart = performance.now();
+            elapsed = 0;
+            timerBarWrap.classList.remove('hidden');
+            timerRunning = true;
+            timerInterval = setInterval(tickTimer, 100);
+            tickTimer();
+        }
+
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = null;
+            timerRunning = false;
+        }
+
+        function resetTimerDisplay() {
+            const limit = activeStage.timeLimit || 10;
+            timerDisplay.textContent = limit.toFixed(1) + 's';
+            timerDisplay.className = 'font-mono-num text-xl font-black text-rose-400 min-w-[65px] text-right';
+            timerBar.style.width = '100%';
+            timerBar.style.backgroundColor = '#ef4444';
+            elapsed = 0;
+        }
+
+        function tickTimer() {
+            if (!timerRunning) return;
+            elapsed = (performance.now() - timerStart) / 1000;
+            const maxSecs = activeStage.timeLimit || 10;
+            const remaining = Math.max(0, maxSecs - elapsed);
+            
+            const secs = Math.floor(remaining);
+            const tenths = Math.floor((remaining - secs) * 10);
+            timerDisplay.textContent = String(secs).padStart(2,'0') + '.' + tenths + 's';
+
+            const pct = Math.max(0, (remaining / maxSecs * 100));
+            timerBar.style.width = pct + '%';
+
+            if (remaining <= 0) {
+                stopTimer();
+                handleTimeoutFail();
+            }
+        }
+
+        function triggerScreenShake() {
+            arenaCard.classList.add('shake');
+            setTimeout(() => arenaCard.classList.remove('shake'), 450);
+        }
+
+        function handleTimeoutFail() {
+            triggerScreenShake();
+            drillProgress++;
+            streak = 0;
+            updateDrillProgress();
+            
+            challengeFeedback.innerHTML = `⏱️ <strong>TIME EXPIRED!</strong> Speed boundary breached.<br><span class="text-xs font-semibold text-rose-300">Answer: ${correctAns}</span>`;
+            challengeFeedback.className = 'text-center font-bold text-base text-rose-400 min-h-[36px]';
+            
+            challengeAnswer.disabled = true;
+            hintBtn.classList.add('hidden');
+            skipBtn.classList.add('hidden');
+            showDetailedSolution();
+            
+            const reqCount = activeStage.reqCount || 5;
+            if (drillProgress < reqCount) {
+                nextBtn.textContent = "Next Question →";
+                nextBtn.classList.remove('hidden');
+            }
+            checkStageCompletion();
+            save(); updateStats();
+        }
+
+        // Strict 1-Shot Submit & Diagnostic Engine
+        function submitAnswer() {
+            if (!practiceActive) {
+                practiceActive = true;
+                submitBtn.textContent = '✓ Submit Answer';
+                submitBtn.className = "flex-1 py-3.5 px-6 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-base transition shadow-lg shadow-rose-600/25 active:scale-95";
+                generateProblem();
+                return;
+            }
+
+            const userAns = parseInt(challengeAnswer.value);
+            if (isNaN(userAns)) {
+                challengeFeedback.textContent = '⚠️ Please enter a valid number';
+                challengeFeedback.className = 'text-center font-bold text-base text-amber-400 min-h-[36px]';
+                return;
+            }
+
+            stopTimer();
+            drillProgress++;
+
+            if (userAns === correctAns) {
+                drillCorrect++;
+                streak++; correctCount++; if (window.soundEngine) window.soundEngine.playCorrect(); if (window.triggerHaptic) window.triggerHaptic(40);
+                
+                const currentOPM = Math.round(60 / Math.max(0.5, elapsed));
+                opmVelocity = Math.max(opmVelocity, currentOPM);
+
+                let speedBonus = elapsed < 3.0 ? 150 : elapsed < 5.0 ? 100 : 50;
+                const pts = 100 + speedBonus + Math.min(streak * 5, 100);
+                totalPoints += pts;
+                
+                const speedMultiplierStr = elapsed < 3.0 ? '⚡ 3X SPEED' : elapsed < 5.0 ? '🔥 2X SPEED' : '';
+                challengeFeedback.innerHTML = `✅ Correct! +${pts} pts — ${elapsed.toFixed(1)}s <span class="text-amber-400 font-black ml-2">${speedMultiplierStr}</span>`;
+                challengeFeedback.className = 'text-center font-bold text-lg text-emerald-400 min-h-[36px]';
+                spawnConfetti();
+
+                challengeAnswer.disabled = true;
+                hintBtn.classList.add('hidden');
+                skipBtn.classList.add('hidden');
+                updateDrillProgress();
+                checkStageCompletion();
+                save(); updateStats();
+
+                const reqCount = activeStage.reqCount || 5;
+                if (drillProgress < reqCount) {
+                    setTimeout(() => generateProblem(), 1000);
+                }
+
+            } else {
+                triggerScreenShake();
+                streak = 0;
+                updateDrillProgress();
+
+                const diagMsg = diagnoseWorkingMemoryError(num1, num2, userAns);
+
+                challengeFeedback.innerHTML = `❌ <strong>INCORRECT!</strong><br><span class="text-xs font-semibold text-rose-300">💡 Memory Diagnostic: ${diagMsg}</span>`;
+                challengeFeedback.className = 'text-center font-bold text-base text-rose-400 min-h-[36px]';
+                
+                challengeAnswer.disabled = true;
+                hintBtn.classList.add('hidden');
+                skipBtn.classList.add('hidden');
+                showDetailedSolution();
+
+                const reqCount = activeStage.reqCount || 5;
+                if (drillProgress < reqCount) {
+                    nextBtn.textContent = "Next Question →";
+                    nextBtn.classList.remove('hidden');
+                }
+                checkStageCompletion();
+                save(); updateStats();
+            }
+        }
+
+        // Working Memory Error Diagnostic Engine
+        function diagnoseWorkingMemoryError(n1, n2, userAns) {
+            const a1 = n1 % 10, a10 = Math.floor(n1 / 10);
+            const b1 = n2 % 10, b10 = Math.floor(n2 / 10);
+            const s1 = a1 * b1;
+            const s1c = Math.floor(s1 / 10);
+
+            const s2NoCarry = (a10 * b1) + (a1 * b10);
+            const s2WithCarry = s2NoCarry + s1c;
+            const s2c = Math.floor(s2WithCarry / 10);
+            const wrongAnsNoCarry = ((a10 * b10 + s2c) * 100) + ((s2NoCarry % 10) * 10) + (s1 % 10);
+
+            if (userAns === wrongAnsNoCarry && s1c > 0) {
+                return `You multiplied correctly, but forgot the <strong>+${s1c}</strong> carry in working memory during the cross step!`;
+            }
+
+            if (userAns % 10 === s1 % 10) {
+                return `Ones digit is correct! Double-check your cross product carry summation.`;
+            }
+
+            return `Check intermediate digit products & working memory carries.`;
+        }
+
+        // Strict 3 Consecutive Perfect Clears Mastery Evaluation
+        function checkStageCompletion() {
+            const reqCount = activeStage.reqCount || 5;
+            if (drillProgress >= reqCount) {
+                const isPerfect = (drillCorrect === reqCount);
+
+                let currentClears = stagePerfectClears[activeStage.id] || 0;
+
+                if (isPerfect) {
+                    currentClears++;
+                    stagePerfectClears[activeStage.id] = currentClears;
+                    
+                    const stars = Math.min(3, currentClears);
+                    stageStars[activeStage.id] = stars;
+                    
+                    save(); updateStats(); renderJourneyMap();
+                    spawnConfetti();
+                } else {
+                    stagePerfectClears[activeStage.id] = 0;
+                    save(); updateStats(); renderJourneyMap();
+                }
+
+                perfectStreakBadge.textContent = `Streak: ${stagePerfectClears[activeStage.id] || 0}/3 Perfect`;
+
+                const currentIdx = STAGES.findIndex(s => s.id === activeStage.id);
+                const nextStageObj = STAGES[currentIdx + 1];
+                const newTotalStars = countTotalStars();
+
+                setTimeout(() => {
+                    if (isPerfect) {
+                        const starsEarned = Math.min(3, stagePerfectClears[activeStage.id]);
+                        challengeFeedback.innerHTML = `🏆 PERFECT DRILL! <strong>${drillCorrect}/${reqCount}</strong> (Streak: ${stagePerfectClears[activeStage.id]}/3 — ${starsEarned}⭐)`;
+                        challengeFeedback.className = 'text-center font-bold text-xl text-emerald-400 min-h-[36px]';
+                    } else {
+                        challengeFeedback.innerHTML = `❌ DRILL FAILED! Result: <strong>${drillCorrect}/${reqCount}</strong>. Streak reset to 0/3.`;
+                        challengeFeedback.className = 'text-center font-bold text-xl text-rose-400 min-h-[36px]';
+                    }
+                    
+                    nextBtn.classList.add('hidden');
+                    
+                    if (nextStageObj && newTotalStars >= nextStageObj.minStarsToUnlock) {
+                        quickNextStageBtn.textContent = `⚡ Next Stage Unlocked: ${nextStageObj.name} →`;
+                        quickNextStageBtn.classList.remove('hidden');
+                        quickNextStageBtn.onclick = () => {
+                            quickNextStageBtn.classList.add('hidden');
+                            quickNextStageBtn.onclick = null;
+                            launchStage(nextStageObj);
+                        };
+                    } else {
+                        nextBtn.textContent = isPerfect ? "Retry Stage for 3★ →" : "Retry Stage (Need Perfect Run) →";
+                        nextBtn.classList.remove('hidden');
+                        nextBtn.onclick = () => {
+                            nextBtn.classList.add('hidden');
+                            nextBtn.onclick = null;
+                            launchStage(activeStage);
+                        };
+                    }
+                }, 1000);
+            }
+        }
+
+        // Hints & Solutions
+        function showHint() {
+            hintCount++;
+            const steps = buildSolutionSteps();
+            if (!steps) return;
+
+            const hintHTML = `
+                <div class="border-t border-neutral-800 pt-4 mt-2 text-left">
+                    <p class="font-bold text-amber-400 mb-2 text-sm">💡 Hint Step ${hintCount}:</p>
+                    <div class="space-y-1">
+                        ${steps.slice(0, hintCount).map(s => `<div class="bg-neutral-950 p-2.5 rounded-xl text-neutral-300 text-xs font-mono">${s}</div>`).join('')}
+                    </div>
+                </div>
+            `;
+            challengeSolution.innerHTML = hintHTML;
+            challengeSolution.classList.remove('hidden');
+            if (hintCount >= steps.length) hintBtn.classList.add('hidden');
+        }
+
+        function showDetailedSolution() {
+            const steps = buildSolutionSteps();
+            if (!steps) return;
+
+            const stepsHTML = `
+                <div class="flex items-center justify-between border-b border-neutral-800 pb-3">
+                    <h3 class="font-bold text-rose-400 text-base">📋 Step-by-Step Solution Breakdown:</h3>
+                    <span class="text-xs text-neutral-500 font-mono">${num1} &times; ${num2}</span>
+                </div>
+                <div class="space-y-2 text-xs font-mono">
+                    ${steps.map(s => `<div class="bg-neutral-950 p-3 rounded-xl border border-neutral-800/80 text-neutral-300">${s}</div>`).join('')}
+                </div>
+                <div class="mt-2 text-center bg-emerald-950/50 border border-emerald-800/60 py-3 rounded-xl">
+                    <span class="text-neutral-400 font-bold">Final Product: </span>
+                    <span class="text-emerald-400 font-mono-num font-extrabold text-xl ml-2">${correctAns}</span>
+                </div>
+            `;
+            challengeSolution.innerHTML = stepsHTML;
+            challengeSolution.classList.remove('hidden');
+        }
+
+        // Mathematical Solvers Engine
+        function buildSolutionSteps() {
+            const topic = activeTopic;
+
+            if (topic === '2x2') {
+                const a1 = num1 % 10, a10 = Math.floor(num1 / 10);
+                const b1 = num2 % 10, b10 = Math.floor(num2 / 10);
+                const s1 = a1 * b1;
+                const s1d = s1 % 10, s1c = Math.floor(s1 / 10);
+                const s2 = (a10 * b1) + (a1 * b10) + s1c;
+                const s2d = s2 % 10, s2c = Math.floor(s2 / 10);
+                const s3 = (a10 * b10) + s2c;
+
+                return [
+                    `<strong>1. Ones Step:</strong> ${a1} × ${b1} = ${s1} → write <span class="text-emerald-400 font-bold">${s1d}</span>` + (s1c > 0 ? `, carry <span class="text-rose-400 font-bold">${s1c}</span>` : ''),
+                    `<strong>2. Cross Step:</strong> (${a10}×${b1}) + (${a1}×${b10})` + (s1c > 0 ? ` + ${s1c}` : '') + ` = ${s2} → write <span class="text-emerald-400 font-bold">${s2d}</span>` + (s2c > 0 ? `, carry <span class="text-rose-400 font-bold">${s2c}</span>` : ''),
+                    `<strong>3. Tens Step:</strong> ${a10} × ${b10}` + (s2c > 0 ? ` + ${s2c}` : '') + ` = ${s3} → write <span class="text-emerald-400 font-bold">${s3}</span>`
+                ];
+            }
+
+            if (topic === 'special-5') {
+                const firstDigit = Math.floor(num1 / 10);
+                const left = firstDigit * (firstDigit + 1);
+                return [
+                    `<strong>1. Right Part:</strong> 5 × 5 = <span class="text-amber-400 font-bold">25</span>`,
+                    `<strong>2. Left Part:</strong> ${firstDigit} × (${firstDigit}+1) = ${firstDigit} × ${firstDigit+1} = <span class="text-emerald-400 font-bold">${left}</span>`,
+                    `<strong>3. Combine:</strong> [${left}][25] = <span class="text-amber-400 font-bold">${correctAns}</span>`
+                ];
+            }
+
+            if (topic === 'special-11') {
+                const multiplier = num1 === 11 ? num2 : num1;
+                const digits = String(multiplier).split('').map(Number);
+                const steps = [];
+                steps.push(`<strong>1. Rightmost Digit:</strong> Keep <span class="text-emerald-400 font-bold">${digits[digits.length-1]}</span>`);
+                let carry = 0;
+                for (let i = digits.length - 1; i > 0; i--) {
+                    const sum = digits[i] + digits[i-1] + carry;
+                    const digit = sum % 10;
+                    carry = Math.floor(sum / 10);
+                    steps.push(`<strong>2. Middle (${digits[i-1]}+${digits[i]}):</strong> Sum = ${sum} → write <span class="text-emerald-400 font-bold">${digit}</span>` + (carry > 0 ? `, carry <span class="text-rose-400 font-bold">${carry}</span>` : ''));
+                }
+                steps.push(`<strong>3. Leftmost Digit:</strong> ${digits[0]}` + (carry > 0 ? ` + ${carry}` : '') + ` = <span class="text-emerald-400 font-bold">${digits[0]+carry}</span>`);
+                return steps;
+            }
+
+            if (topic === 'nikhilam') {
+                const base = 100;
+                const d1 = num1 - base, d2 = num2 - base;
+                const left = num1 + d2;
+                const right = d1 * d2;
+                const rightStr = String(Math.abs(right)).padStart(2, '0');
+                return [
+                    `<strong>Deviations from 100:</strong> ${num1} → ${d1>=0?'+':''}${d1} | ${num2} → ${d2>=0?'+':''}${d2}`,
+                    `<strong>Left Part:</strong> ${num1} + (${d2}) = <span class="text-emerald-400 font-bold">${left}</span>`,
+                    `<strong>Right Part:</strong> (${d1}) × (${d2}) = <span class="text-emerald-400 font-bold">${rightStr}</span>`
+                ];
+            }
+
+            if (topic === '3x3') {
+                const a1=num1%10, a10=Math.floor(num1/10)%10, a100=Math.floor(num1/100);
+                const b1=num2%10, b10=Math.floor(num2/10)%10, b100=Math.floor(num2/100);
+                const s1=a1*b1; const s1d=s1%10, s1c=Math.floor(s1/10);
+                const s2=a10*b1+a1*b10+s1c; const s2d=s2%10, s2c=Math.floor(s2/10);
+                const s3=a100*b1+a10*b10+a1*b100+s2c; const s3d=s3%10, s3c=Math.floor(s3/10);
+                const s4=a100*b10+a10*b100+s3c; const s4d=s4%10, s4c=Math.floor(s4/10);
+                const s5=a100*b100+s4c;
+
+                return [
+                    `<strong>1. Vertical Right:</strong> ${a1} × ${b1} = ${s1} → write <span class="text-emerald-400 font-bold">${s1d}</span>` + (s1c>0?`, carry <span class="text-rose-400 font-bold">${s1c}</span>`:''),
+                    `<strong>2. Cross Right:</strong> (${a10}×${b1})+(${a1}×${b10})` + (s1c>0?`+${s1c}`:'') + ` = ${s2} → write <span class="text-emerald-400 font-bold">${s2d}</span>` + (s2c>0?`, carry <span class="text-rose-400 font-bold">${s2c}</span>`:''),
+                    `<strong>3. Grand Star ★:</strong> (${a100}×${b1})+(${a10}×${b10})+(${a1}×${b100})` + (s2c>0?`+${s2c}`:'') + ` = ${s3} → write <span class="text-emerald-400 font-bold">${s3d}</span>` + (s3c>0?`, carry <span class="text-rose-400 font-bold">${s3c}</span>`:''),
+                    `<strong>4. Cross Left:</strong> (${a100}×${b10})+(${a10}×${b100})` + (s3c>0?`+${s3c}`:'') + ` = ${s4} → write <span class="text-emerald-400 font-bold">${s4d}</span>` + (s4c>0?`, carry <span class="text-rose-400 font-bold">${s4c}</span>`:''),
+                    `<strong>5. Vertical Left:</strong> ${a100} × ${b100}` + (s4c>0?`+${s4c}`:'') + ` = ${s5} → write <span class="text-emerald-400 font-bold">${s5}</span>`
+                ];
+            }
+
+            return null;
+        }
+
+        // Interactive Mini-Tutorial Modal
+        function openTutorial(stgId) {
+            const tutData = TUTORIALS[stgId] || TUTORIALS['1.1'];
+            currentTutData = tutData;
+            currentTutIndex = 0;
+            tutStageTitle.textContent = tutData.title;
+            renderTutorialStep();
+            tutorialModal.classList.remove('hidden');
+        }
+
+        function renderTutorialStep() {
+            if (!currentTutData) return;
+            const step = currentTutData.steps[currentTutIndex];
+            tutStepCounter.textContent = `Step ${currentTutIndex + 1} of ${currentTutData.steps.length}`;
+            tutStepBox.innerHTML = `
+                <div class="text-center py-2 border-b border-neutral-800 text-lg font-bold text-amber-400">${step.prob}</div>
+                <div class="text-neutral-200 text-sm leading-relaxed">${step.text}</div>
+            `;
+            tutPrevBtn.disabled = currentTutIndex === 0;
+            tutPrevBtn.style.opacity = currentTutIndex === 0 ? '0.5' : '1';
+            tutNextBtn.textContent = currentTutIndex === currentTutData.steps.length - 1 ? 'Start Practice →' : 'Next Step →';
+        }
+
+        tutPrevBtn.addEventListener('click', () => {
+            if (currentTutIndex > 0) { currentTutIndex--; renderTutorialStep(); }
+        });
+        tutNextBtn.addEventListener('click', () => {
+            if (currentTutIndex < currentTutData.steps.length - 1) {
+                currentTutIndex++; renderTutorialStep();
+            } else {
+                tutorialModal.classList.add('hidden');
+                showStartScreen();
+            }
+        });
+        closeTutBtn.addEventListener('click', () => tutorialModal.classList.add('hidden'));
+
+        // Confetti Celebration
+        function spawnConfetti() {
+            const colors = ['#f59e0b', '#ef4444', '#10b981', '#6366f1', '#ec4899', '#14b8a6', '#8b5cf6'];
+            for (let i = 0; i < 40; i++) {
+                const p = document.createElement('div');
+                p.className = 'confetti-piece';
+                p.style.cssText = `
+                    left: ${Math.random() * 100}%;
+                    top: -20px;
+                    width: ${Math.random() * 8 + 6}px;
+                    height: ${Math.random() * 8 + 6}px;
+                    background: ${colors[Math.floor(Math.random() * colors.length)]};
+                    border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+                    animation-duration: ${Math.random() * 1.2 + 1.0}s;
+                `;
+                confettiContainer.appendChild(p);
+                setTimeout(() => p.remove(), 1600);
+            }
+        }
+
+        // Modal Toggles
+        function toggleGuide(show) {
+            if (show) {
+                renderUnlockedGuide();
+                guideModal.classList.remove('hidden');
+            } else {
+                guideModal.classList.add('hidden');
+            }
+        }
+
+        // Event Listeners
+        viewMapBtn.addEventListener('click', () => {
+            viewArena.classList.add('hidden');
+            viewDojo.classList.add('hidden');
+            viewJourneyMap.classList.remove('hidden');
+        });
+        viewDojoBtn.addEventListener('click', () => launchDojo(activeStage));
+        dojoDirectLinkBtn.addEventListener('click', () => launchDojo(activeStage));
+
+        navLogo.addEventListener('click', () => {
+            viewArena.classList.add('hidden');
+            viewDojo.classList.add('hidden');
+            viewJourneyMap.classList.remove('hidden');
+        });
+        backToMapBtn.addEventListener('click', () => {
+            viewArena.classList.add('hidden');
+            viewDojo.classList.add('hidden');
+            viewJourneyMap.classList.remove('hidden');
+        });
+        
+        // Dojo Listeners
+        dojoSubmitBtn.addEventListener('click', checkDojoAnswer);
+        dojoAnswer.addEventListener('keydown', e => { if (e.key === 'Enter') checkDojoAnswer(); });
+        dojoNextBtn.addEventListener('click', generateDojoProblem);
+        dojoGuideLink.addEventListener('click', () => toggleGuide(true));
+        enterTournamentBtn.addEventListener('click', () => launchStage(activeStage));
+
+        dojoSpeedRelaxed.addEventListener('click', () => {
+            dojoSpeedMode = 'relaxed';
+            dojoSpeedRelaxed.className = "px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold transition";
+            dojoSpeedTarget.className = "px-3 py-1.5 rounded-lg text-neutral-400 hover:text-white transition";
+            dojoSpeedHyper.className = "px-3 py-1.5 rounded-lg text-neutral-400 hover:text-white transition";
+            generateDojoProblem();
+        });
+        dojoSpeedTarget.addEventListener('click', () => {
+            dojoSpeedMode = 'target';
+            dojoSpeedRelaxed.className = "px-3 py-1.5 rounded-lg text-neutral-400 hover:text-white transition";
+            dojoSpeedTarget.className = "px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold transition";
+            dojoSpeedHyper.className = "px-3 py-1.5 rounded-lg text-neutral-400 hover:text-white transition";
+            generateDojoProblem();
+        });
+        dojoSpeedHyper.addEventListener('click', () => {
+            dojoSpeedMode = 'hyper';
+            dojoSpeedRelaxed.className = "px-3 py-1.5 rounded-lg text-neutral-400 hover:text-white transition";
+            dojoSpeedTarget.className = "px-3 py-1.5 rounded-lg text-neutral-400 hover:text-white transition";
+            dojoSpeedHyper.className = "px-3 py-1.5 rounded-lg bg-rose-600 text-white font-bold transition";
+            generateDojoProblem();
+        });
+
+        // Tournament Listeners
+        submitBtn.addEventListener('click', submitAnswer);
+        challengeAnswer.addEventListener('keydown', e => { if (e.key === 'Enter') submitAnswer(); });
+
+        stageTutorialBtn.addEventListener('click', () => openTutorial(activeStage.id));
+
+        hintBtn.addEventListener('click', () => {
+            if (!practiceActive) return;
+            showHint();
+        });
+
+        skipBtn.addEventListener('click', () => {
+            if (!practiceActive) return;
+            stopTimer();
+            streak = Math.max(0, streak - 1); if (window.soundEngine) window.soundEngine.playWrong(); if (window.triggerHaptic) window.triggerHaptic(90);
+            drillProgress++;
+            updateDrillProgress();
+            challengeFeedback.textContent = `⏭️ Skipped. Answer: ${correctAns}`;
+            challengeFeedback.className = 'text-center font-bold text-base text-neutral-400 min-h-[36px]';
+            hintBtn.classList.add('hidden');
+            skipBtn.classList.add('hidden');
+            showDetailedSolution();
+            
+            const reqCount = activeStage.reqCount || 5;
+            if (drillProgress < reqCount) {
+                nextBtn.textContent = "Next Question →";
+                nextBtn.classList.remove('hidden');
+            }
+            checkStageCompletion();
+            save(); updateStats();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            nextBtn.classList.add('hidden');
+            generateProblem();
+        });
+
+        guideModalBtn.addEventListener('click', () => toggleGuide(true));
+        closeGuideBtn.addEventListener('click', () => toggleGuide(false));
+        guideModal.addEventListener('click', e => { if (e.target === guideModal) toggleGuide(false); });
+
+        // Global Keyboard Shortcuts
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') { toggleGuide(false); tutorialModal.classList.add('hidden'); }
+            if (document.activeElement !== challengeAnswer && document.activeElement !== dojoAnswer) {
+                if (e.key.toLowerCase() === 'g') toggleGuide(guideModal.classList.contains('hidden'));
+                if (e.key.toLowerCase() === 'h' && practiceActive) showHint();
+                if (e.code === 'Space' && practiceActive) {
+                    e.preventDefault();
+                    if (!nextBtn.classList.contains('hidden')) generateProblem();
+                    else if (!quickNextStageBtn.classList.contains('hidden')) quickNextStageBtn.click();
+                    else skipBtn.click();
+                }
+            }
+        });
+
+        
+        // Sound Button Integration
+        const soundToggleBtn = document.getElementById('sound-toggle-btn');
+        const soundBtnIcon   = document.getElementById('sound-btn-icon');
+        if (soundToggleBtn && window.soundEngine) {
+            function updateSoundUI() {
+                const unmuted = !window.soundEngine.isMuted();
+                soundBtnIcon.textContent = unmuted ? '🔊' : '🔇';
+                soundToggleBtn.classList.toggle('text-rose-400', !unmuted);
+            }
+            soundToggleBtn.addEventListener('click', () => {
+                window.soundEngine.toggleSound();
+                updateSoundUI();
+                if (window.triggerHaptic) window.triggerHaptic(20);
+            });
+            updateSoundUI();
+        }
+
+        // Android Hardware Back Button Handling
+        window.handleAndroidBack = function() {
+            if (!guideModal.classList.contains('hidden')) {
+                toggleGuide(false);
+                return 'handled';
+            }
+            if (!tutorialModal.classList.contains('hidden')) {
+                tutorialModal.classList.add('hidden');
+                return 'handled';
+            }
+            if (!viewArena.classList.contains('hidden') || !viewDojo.classList.contains('hidden')) {
+                viewArena.classList.add('hidden');
+                viewDojo.classList.add('hidden');
+                viewJourneyMap.classList.remove('hidden');
+                return 'handled';
+            }
+            return 'exit';
+        };
+
+        init();
+    })();
+    </script>
+</body>
+</html>

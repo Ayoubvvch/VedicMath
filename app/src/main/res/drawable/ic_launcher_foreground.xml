@@ -1,0 +1,30 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.75"
+        android:scaleY="0.75"
+        android:translateX="13.5"
+        android:translateY="13.5">
+        <!-- Outer Diamond Crest (Vedic Sutra Geometry) -->
+        <path
+            android:strokeColor="#6366F1"
+            android:strokeWidth="2.5"
+            android:pathData="M54,18 L90,54 L54,90 L18,54 Z"/>
+        <!-- Inner Diamond Accent -->
+        <path
+            android:strokeColor="#E11D48"
+            android:strokeWidth="1.5"
+            android:pathData="M54,26 L82,54 L54,82 L26,54 Z"/>
+        <!-- Central Golden Lightning Bolt -->
+        <path
+            android:fillColor="#FBBF24"
+            android:pathData="M56,22 L38,56 L52,56 L46,86 L72,50 L56,50 Z"/>
+        <!-- Top Energy Spark -->
+        <path
+            android:fillColor="#F43F5E"
+            android:pathData="M54,12 L56,16 L54,20 L52,16 Z"/>
+    </group>
+</vector>
